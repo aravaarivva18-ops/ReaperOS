@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reaper-os"
+version = "12.3.0"
+description = "Self-Healing Project Memory (AI Context Sync / Local RAG for coding assistants)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Ruslan", email = "rus@example.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "aiosqlite>=0.18.0",
+    "pydantic>=2.0.0",
+    "sentence-transformers>=2.2.0",
+    "pytest>=7.0.0",
+    "pytest-mock>=3.0.0",
+    "vk_api>=11.9.0",
+    "Flask>=3.0.0",
+    "flask-cors>=4.0.0",
+]
+
+[project.scripts]
+reaper = "engine.main:cli_entrypoint"

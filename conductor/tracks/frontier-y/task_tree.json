@@ -1,0 +1,30 @@
+{
+  "track_id": "frontier-y",
+  "tasks": [
+    {
+      "id": "dev-synthesizer",
+      "description": "Develop tools/spec_synthesizer.py",
+      "verification_criteria": "Script exists and validates schema",
+      "dependencies": [],
+      "status": "completed"
+    },
+    {
+      "id": "int-reaper",
+      "description": "Integrate sqlite-vec into reaper.py",
+      "verification_criteria": "Reaper can execute recall via vector search",
+      "dependencies": [
+        "dev-synthesizer"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "test-dynamic-task",
+      "description": "This is a dynamic test task",
+      "verification_criteria": "Dynamic task",
+      "dependencies": [
+        "int-reaper"
+      ],
+      "status": "pending"
+    }
+  ]
+}

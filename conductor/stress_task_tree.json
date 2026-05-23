@@ -1,0 +1,19 @@
+{
+  "track_id": "stress-test",
+  "tasks": [
+    {
+      "id": "stage-1-index",
+      "description": "Index 100 fake memory nodes",
+      "verification_criteria": "DB count increased",
+      "dependencies": [],
+      "status": "pending"
+    },
+    {
+      "id": "stage-2-query",
+      "description": "Perform concurrent vector search",
+      "verification_criteria": "Search results returned",
+      "dependencies": ["stage-1-index"],
+      "status": "pending"
+    }
+  ]
+}

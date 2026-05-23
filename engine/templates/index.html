@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReaperOS | Bento Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 28, 45, 0.4);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --neon-green: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.08) 0px, transparent 50%);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1rem;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--neon-green);
+            padding: 0.4rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--neon-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-8 { grid-column: span 8; }
+        .col-12 { grid-column: span 12; }
+
+        h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .big-number {
+            font-family: 'Outfit', sans-serif;
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #9ca3af 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0.5rem 0;
+        }
+
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        /* Scrollbar */
+        .list-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .list-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .list-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .tier-badge {
+            text-transform: uppercase;
+            font-weight: 600;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+        }
+
+        .tier-cold { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .tier-warm { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-main);
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-purple);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-purple) 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--accent-purple);
+            color: #c084fc;
+        }
+
+        .btn-outline:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .col-4, .col-6, .col-8 {
+                grid-column: span 12;
+            }
+            body {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔮 REAPER OS</h1>
+        <div class="status-badge">
+            <span class="status-dot"></span>
+            <span>SYSTEM ONLINE</span>
+        </div>
+    </header>
+
+    <div class="grid">
+        <!-- Node Count -->
+        <div class="card col-4">
+            <h2>📦 Memory Vault</h2>
+            <div class="big-number" id="node-count">-</div>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Total active memory nodes indexed in the local SQLite WAL database.</p>
+        </div>
+
+        <!-- Semantic Search Explorer -->
+        <div class="card col-8">
+            <h2>🔍 Semantic Query Explorer</h2>
+            <div class="search-box">
+                <input type="text" id="query-input" placeholder="Type a concept to recall (e.g. 'trinity protocol' or 'vk parameters')...">
+                <button onclick="performSearch()">Search</button>
+            </div>
+            <div class="list-container" id="search-results" style="max-height: 200px;">
+                <p style="color: var(--text-muted); text-align: center; margin-top: 2rem;">Run a semantic search to query local embeddings...</p>
+            </div>
+        </div>
+
+        <!-- Recent Memories -->
+        <div class="card col-6">
+            <h2>📜 Recent Memories</h2>
+            <div class="list-container" id="recent-memories">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- System Health logs -->
+        <div class="card col-6">
+            <h2>⚡ System Health Logs</h2>
+            <div class="list-container" id="health-logs">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Action Center -->
+        <div class="card col-12">
+            <h2>🛠️ Action Center</h2>
+            <div class="actions">
+                <button class="btn-outline" onclick="triggerSetup()">1-Click MCP Setup</button>
+                <button class="btn-outline" onclick="window.open('/api/stats', '_blank')">Raw JSON API</button>
+            </div>
+            <p id="action-status" style="margin-top: 1rem; font-size: 0.9rem; color: #10b981; min-height: 1.25rem;"></p>
+        </div>
+    </div>
+
+    <script>
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                
+                document.getElementById('node-count').innerText = data.node_count;
+                
+                // Load recent memories
+                const memoriesDiv = document.getElementById('recent-memories');
+                memoriesDiv.innerHTML = '';
+                data.recent_memories.forEach(m => {
+                    const el = document.createElement('div');
+                    el.className = 'list-item';
+                    el.innerHTML = `
+                        <div class="item-header">
+                            <span>ID: ${m.id}</span>
+                            <span class="tier-badge tier-${m.tier}">${m.tier}</span>
+                        </div>
+                        <p style="margin-top: 0.25rem;">${m.payload}</p>
+                        <span style="font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 0.25rem;">${m.timestamp}</span>
+                    `;
+                    memoriesDiv.appendChild(el);
+                });
+
+                // Load health logs
+                const healthDiv = document.getElementById('health-logs');
+                healthDiv.innerHTML = '';
+                data.health_logs.forEach(h => {
+                    const el = document.createElement('div');
+                    el.className = 'list-item';
+                    el.innerHTML = `
+                        <div class="item-header">
+                            <span>${h.metric_name}</span>
+                            <span style="color: ${h.status === 'OK' || h.status === 'SUCCESS' ? '#10b981' : '#f59e0b'}">${h.status}</span>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Value: ${h.value}</p>
+                        <span style="font-size: 0.7rem; color: var(--text-muted); text-align: right;">${h.timestamp}</span>
+                    `;
+                    healthDiv.appendChild(el);
+                });
+            } catch (err) {
+                console.error("Failed to load dashboard statistics:", err);
+            }
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('query-input').value.trim();
+            if (!query) return;
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 2rem;">Querying semantic vector space...</p>';
+            
+            try {
+                const res = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await res.json();
+                
+                resultsDiv.innerHTML = '';
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(r => {
+                        const el = document.createElement('div');
+                        el.className = 'list-item';
+                        el.innerHTML = `
+                            <p>${r}</p>
+                        `;
+                        resultsDiv.appendChild(el);
+                    });
+                } else {
+                    resultsDiv.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 2rem;">No matching memories found.</p>';
+                }
+            } catch (err) {
+                resultsDiv.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 2rem;">Search failed: ${err.message}</p>`;
+            }
+        }
+
+        async function triggerSetup() {
+            const statusEl = document.getElementById('action-status');
+            statusEl.innerText = "Triggering MCP configuration...";
+            statusEl.style.color = "#a78bfa";
+            
+            try {
+                const res = await fetch('/api/setup', { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    statusEl.innerText = "✓ Configuration applied: " + data.message;
+                    statusEl.style.color = "#10b981";
+                } else {
+                    statusEl.innerText = "✗ Setup failed: " + data.message;
+                    statusEl.style.color = "#ef4444";
+                }
+            } catch (err) {
+                statusEl.innerText = "✗ Request failed: " + err.message;
+                statusEl.style.color = "#ef4444";
+            }
+        }
+
+        // Auto refresh stats
+        fetchStats();
+        setInterval(fetchStats, 10000);
+    </script>
+</body>
+</html>

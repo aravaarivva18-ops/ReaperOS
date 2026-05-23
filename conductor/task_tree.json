@@ -1,0 +1,12 @@
+{
+  "track_id": "undo-protocol-init",
+  "tasks": [
+    {
+      "id": "undo-protocol-init",
+      "description": "Интеграция стека Undo в MemoryBrain",
+      "verification_criteria": "Stack operations work",
+      "dependencies": [],
+      "status": "pending"
+    }
+  ]
+}

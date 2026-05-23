@@ -1,0 +1,20 @@
+# System
+.DS_Store
+__pycache__/
+
+# Python / Inference
+.reaper_venv/
+local_models/
+
+# Context / Logs
+.reaper_context
+reaper_daemon.log
+reaper_daemon.err
+
+# Credentials
+.env
+.env.local
+
+# Temporary Daemon Indicators
+.daemon_ready
+*.sock

@@ -1,0 +1,28 @@
+{
+  "title": "Task Tree Schema",
+  "version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "track_id": { "type": "string" },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "verification_criteria": { "type": "string" },
+          "dependencies": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "failed"]
+          }
+        },
+        "required": ["id", "description", "verification_criteria"]
+      }
+    }
+  }
+}
