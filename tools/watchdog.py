@@ -56,9 +56,8 @@ def start_flask_api():
 
 def is_trinity_running():
     """Проверяет, запущен ли демон Trinity (по сокету или процессу)."""
-    # Будем искать процессы python3 с trinity в аргументах или запущенный trinity-start
     try:
-        output = subprocess.check_output(["pgrep", "-f", "trinity-start.sh|conductor"], text=True)
+        output = subprocess.check_output(["pgrep", "-f", "engine.main|engine.daemon"], text=True)
         return len(output.strip()) > 0
     except subprocess.CalledProcessError:
         return False
