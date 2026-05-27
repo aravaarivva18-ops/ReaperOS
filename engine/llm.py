@@ -2,22 +2,28 @@ import asyncio
 import numpy as np
 import os
 import json
+from functools import lru_cache
 from config import WEIGHTS_DIR, BASE_DIR
 
 _LOCAL_EMBEDDER = None
 _LOCAL_LLM = None
 _LOCAL_TOKENIZER = None
 
+@lru_cache(maxsize=1024)
+def _cached_encode(text: str) -> list:
+    global _LOCAL_EMBEDDER
+    if _LOCAL_EMBEDDER is None:
+        from sentence_transformers import SentenceTransformer
+        model_path = os.path.join(WEIGHTS_DIR, "all-MiniLM-L6-v2")
+        _LOCAL_EMBEDDER = SentenceTransformer(model_path, device='cpu')
+    return _LOCAL_EMBEDDER.encode(text).tolist()
+
 # Keep the embedder strictly local.
 # It loads the sentence-transformer weights directly from the isolated local folder.
 async def get_embedder_local(text):
-    global _LOCAL_EMBEDDER
     try:
-        if _LOCAL_EMBEDDER is None:
-            from sentence_transformers import SentenceTransformer
-            model_path = os.path.join(WEIGHTS_DIR, "all-MiniLM-L6-v2")
-            _LOCAL_EMBEDDER = SentenceTransformer(model_path, device='cpu')
-        return await asyncio.to_thread(lambda: _LOCAL_EMBEDDER.encode(text))
+        emb_list = await asyncio.to_thread(_cached_encode, text)
+        return np.array(emb_list)
     except Exception as e:
         print(f"Local Embedding failed: {e}")
         return np.zeros(384)

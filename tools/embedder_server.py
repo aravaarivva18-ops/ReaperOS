@@ -3,6 +3,7 @@ import time
 from flask import Flask, request, jsonify, Response
 from sentence_transformers import SentenceTransformer
 from knowledge_brain import add_telemetry, get_process_status, get_latest_telemetry
+from telemetry_logger import TelemetryLogger
 
 app = Flask(__name__)
 
@@ -37,7 +38,7 @@ def health():
 
 @app.route('/encode', methods=['POST'])
 def encode():
-    start_time = time.time()
+    start_time = time.perf_counter()
     data = request.json
     if not data or 'text' not in data:
         return jsonify({'error': 'Missing text parameter'}), 400
@@ -45,14 +46,13 @@ def encode():
     try:
         m = get_model()
         emb = m.encode(data['text'])
-        latency_ms = (time.time() - start_time) * 1000
         
-        # Пишем телеметрию
+        # Calculate latency and log using standard TelemetryLogger
+        latency_ms = TelemetryLogger.log_call("encode_api", start_time, f"Text length: {len(data['text'])}")
+        
+        # Пишем телеметрию в БД
         add_telemetry("encode_latency", latency_ms, f"Text length: {len(data['text'])}")
-        
-        # SLI предупреждение в логи при задержке >500ms
         if latency_ms > 500:
-            print(f"⚠️ [WARNING] SLI Breach: encode_latency = {latency_ms:.1f}ms (>500ms)")
             add_telemetry("sli_warning", latency_ms, "encode_latency > 500ms")
             
         return jsonify({'embedding': emb.tolist(), 'latency_ms': latency_ms})
