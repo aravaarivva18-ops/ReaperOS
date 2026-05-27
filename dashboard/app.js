@@ -71,38 +71,47 @@ document.addEventListener('DOMContentLoaded', () => {
         consoleOutput.scrollTop = consoleOutput.scrollHeight;
     }
 
-    // Initialize with template logs sequentially
+    // Connect real-time server-sent logs stream
+    function connectLiveLogsStream() {
+        const source = new EventSource('/api/logs/stream');
+        
+        source.onmessage = (event) => {
+            const rawText = event.data;
+            if (!rawText) return;
+            
+            // Classify severity level dynamically
+            let level = 'info';
+            const lowerText = rawText.toLowerCase();
+            if (lowerText.includes('⚠️') || lowerText.includes('warning') || lowerText.includes('sli') || lowerText.includes('error') || lowerText.includes('fail') || lowerText.includes('недоступен')) {
+                level = 'warn';
+            } else if (lowerText.includes('restart') || lowerText.includes('restarted') || lowerText.includes('down') || lowerText.includes('recovering')) {
+                level = 'debug';
+            }
+            
+            addLogLine(level, rawText);
+            triggerStepAnimation();
+        };
+
+        source.onerror = () => {
+            console.warn("Live logs stream disconnected. Retrying...");
+            source.close();
+            setTimeout(connectLiveLogsStream, 5000);
+        };
+    }
+    
+    // Initialize with template logs sequentially then connect stream
     let initIndex = 0;
     function loadInitialLogs() {
         if (initIndex < logTemplates.length) {
             const template = logTemplates[initIndex];
             addLogLine(template.level, template.text);
             initIndex++;
-            setTimeout(loadInitialLogs, 400);
+            setTimeout(loadInitialLogs, 150);
         } else {
-            // Start live random logs generator
-            setInterval(generateLiveLog, 5000);
+            connectLiveLogsStream();
         }
     }
     setTimeout(loadInitialLogs, 200);
-
-    // Live log generator simulating background work
-    const liveLogPool = [
-        { level: 'debug', text: 'MemPalace: Запуск планового индексирования сессии в ChromaDB' },
-        { level: 'info', text: 'Conductor: Завершен дрим-цикл. Обнаружено 0 новых уязвимостей в коде' },
-        { level: 'info', text: 'Antigravity: Ожидание новых инструкций от пользователя...' },
-        { level: 'debug', text: 'Ruflo: Мониторинг фоновых процессов... Daemon socket active' },
-        { level: 'warn', text: 'Telemetry: Задержка API превысила 150ms при запросе к локальной LLM' },
-        { level: 'info', text: 'Conductor: Синхронизация GLOBAL_CHRONICLE.md завершена' }
-    ];
-
-    function generateLiveLog() {
-        const randLog = liveLogPool[Math.floor(Math.random() * liveLogPool.length)];
-        addLogLine(randLog.level, randLog.text);
-        
-        // Trigger visual step activations
-        triggerStepAnimation();
-    }
 
     // Filter logs functionality
     filterBtns.forEach(btn => {
@@ -316,4 +325,36 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(drawGraph);
     }
     requestAnimationFrame(drawGraph);
+
+    // MCP Configurator Integration Trigger
+    const mcpTrigger = document.getElementById('mcp-setup-trigger');
+    const mcpStatusText = document.getElementById('mcp-status-text');
+    
+    if (mcpTrigger) {
+        mcpTrigger.addEventListener('click', async () => {
+            mcpTrigger.style.transform = "scale(0.98)";
+            mcpTrigger.style.opacity = "0.8";
+            mcpStatusText.textContent = "Регистрация MCP серверов в IDE...";
+            
+            try {
+                const res = await fetch('/api/setup', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    mcpStatusText.textContent = "Успешно: " + data.message;
+                    mcpStatusText.style.color = "var(--accent-cyan)";
+                } else {
+                    mcpStatusText.textContent = "Ошибка: " + data.message;
+                    mcpStatusText.style.color = "var(--accent-purple)";
+                }
+            } catch (err) {
+                mcpStatusText.textContent = "Ошибка сети при обращении к API.";
+                mcpStatusText.style.color = "var(--accent-purple)";
+            } finally {
+                setTimeout(() => {
+                    mcpTrigger.style.transform = "";
+                    mcpTrigger.style.opacity = "";
+                }, 200);
+            }
+        });
+    }
 });

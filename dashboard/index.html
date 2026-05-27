@@ -188,6 +188,32 @@
                     </div>
                 </div>
             </section>
+
+            <!-- 7. MCP CONFIGURATOR CARD -->
+            <section class="bento-card mcp-card">
+                <div class="card-header">
+                    <span class="card-icon">🔌</span>
+                    <h2>Диспетчер MCP Серверов</h2>
+                </div>
+                <div class="stats-list small-stats" style="margin-bottom: 20px;">
+                    <div class="stat-row">
+                        <span>filesystem</span>
+                        <span class="highlight-green" style="color: var(--accent-cyan);">CONNECTED</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>sequential-thinking</span>
+                        <span class="highlight-green" style="color: var(--accent-cyan);">CONNECTED</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>browser</span>
+                        <span class="highlight-green" style="color: var(--accent-cyan);">CONNECTED</span>
+                    </div>
+                </div>
+                <div class="mcp-setup-container" style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="mcp-setup-btn" id="mcp-setup-trigger" style="background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); border: none; color: #fff; padding: 12px 20px; border-radius: 8px; font-family: var(--font-ui); font-weight: 600; cursor: pointer; transition: transform 0.2s var(--ease-fluid), opacity 0.2s;">Интегрировать в IDE (Claude/Cursor)</button>
+                    <span id="mcp-status-text" class="mcp-status-msg" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-code); text-align: center;">Ожидание запуска...</span>
+                </div>
+            </section>
         </main>
     </div>
 

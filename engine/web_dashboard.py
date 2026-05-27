@@ -5,7 +5,7 @@ import sqlite3
 import asyncio
 import subprocess
 import random
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, Response
 from flask_cors import CORS
 
 from config import DB_PATH, BASE_DIR
@@ -267,6 +267,30 @@ def setup_mcp():
     if success:
         return jsonify({"status": "success", "message": msg})
     return jsonify({"status": "error", "message": msg}), 400
+
+@app.route('/api/logs/stream')
+def stream_logs():
+    def generate():
+        import time
+        log_path = os.path.join(BASE_DIR, "logs/watchdog.log")
+        if not os.path.exists(log_path):
+            yield "data: [Watchdog Log Not Found]\n\n"
+        else:
+            with open(log_path, "r", encoding="utf-8") as f:
+                # Read last 15 lines initially
+                lines = f.readlines()
+                for line in lines[-15:]:
+                    yield f"data: {line.strip()}\n\n"
+                
+                # Tail loop
+                f.seek(0, 2)
+                while True:
+                    line = f.readline()
+                    if not line:
+                        time.sleep(0.5)
+                        continue
+                    yield f"data: {line.strip()}\n\n"
+    return Response(generate(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
     # Start on port 5001 as required by the OLED dashboard configuration

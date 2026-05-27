@@ -103,6 +103,45 @@ async def main():
     finally:
         await MemoryBrain.close()
 
+class SelfHealer:
+    @staticmethod
+    def heal_exception(exc_type, exc_value, exc_tb):
+        import traceback
+        import subprocess
+        from config import DB_PATH
+        tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
+        tb_text = "".join(tb_lines)
+        sys.stderr.write(f"\033[91m[AI Self-Healer triggered] Capturing crash: {exc_value}\n{tb_text}\033[0m\n")
+        sys.stderr.flush()
+        
+        # Write crash dump
+        crash_log = os.path.join(BASE_DIR, "logs/crash_dump.log")
+        os.makedirs(os.path.dirname(crash_log), exist_ok=True)
+        with open(crash_log, "w", encoding="utf-8") as f:
+            f.write(tb_text)
+            
+        # Log to telemetry
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute("INSERT INTO telemetry (metric_name, value, details) VALUES (?, ?, ?)",
+                         ("self_healing_trigger", 1.0, f"Exception: {exc_value}"))
+            conn.commit()
+            conn.close()
+        except: pass
+
+        # Hot-healing auto-restart mechanism: spawn clean Conductor heartbeat back up!
+        sys.stderr.write("[AI Self-Healer] Performing deterministic state recovery and auto-restarting Conductor...\n")
+        sys.stderr.flush()
+        
+        # Spawn clean Conductor in background
+        cmd = [sys.executable, "-m", "engine.main", "start"]
+        env = os.environ.copy()
+        env["PYTHONPATH"] = f"{BASE_DIR}:{BASE_DIR}/engine"
+        subprocess.Popen(cmd, cwd=BASE_DIR, start_new_session=True, env=env)
+
+# Register AI Self-Healer as the global exception handler
+sys.excepthook = SelfHealer.heal_exception
+
 def cli_entrypoint():
     asyncio.run(main())
 

@@ -56,9 +56,15 @@ def get_db():
         conn.close()
 
 _LOCAL_EMBEDDER = None
+_EMBEDDING_CACHE = {}
+_CACHE_MAX_SIZE = 1000
 
 async def get_embedder_remote(text):
     global _LOCAL_EMBEDDER
+    if text in _EMBEDDING_CACHE:
+        import numpy as np
+        return np.copy(_EMBEDDING_CACHE[text])
+        
     try:
         data = json.dumps({"text": text}).encode()
         def _fetch():
@@ -66,17 +72,25 @@ async def get_embedder_remote(text):
             with urllib.request.urlopen(req, timeout=2) as response:
                 import numpy as np
                 return np.array(json.loads(response.read().decode())['embedding'])
-        return await asyncio.to_thread(_fetch)
+        emb = await asyncio.to_thread(_fetch)
     except:
         try:
             if _LOCAL_EMBEDDER is None:
                 from sentence_transformers import SentenceTransformer
                 _LOCAL_EMBEDDER = SentenceTransformer('/Users/rus/Projects/ReaperOS/local_models/weights/all-MiniLM-L6-v2', device='cpu')
-            return await asyncio.to_thread(lambda: _LOCAL_EMBEDDER.encode(text))
+            emb = await asyncio.to_thread(lambda: _LOCAL_EMBEDDER.encode(text))
         except Exception as e:
             print(f"Embedding fallback failed: {e}")
             import numpy as np
-            return np.zeros(384)
+            emb = np.zeros(384)
+            
+    # Cache management
+    if len(_EMBEDDING_CACHE) >= _CACHE_MAX_SIZE:
+        first_key = next(iter(_EMBEDDING_CACHE))
+        _EMBEDDING_CACHE.pop(first_key)
+    _EMBEDDING_CACHE[text] = emb
+    import numpy as np
+    return np.copy(emb)
 
 def cosine_sim(a, b):
     import numpy as np
@@ -98,7 +112,7 @@ class ColdMemory:
         emb = await get_embedder_remote(text)
         with get_db() as conn:
             conn.execute("INSERT INTO memory_pages (tier, payload, embedding) VALUES (?, ?, ?)", 
-                         (tier, text, json.dumps(emb.tolist())))
+                          (tier, text, json.dumps(emb.tolist())))
         print(f"\033[94m[Cold Memory]\033[0m Archived: {text[:50]}...")
 
     @staticmethod
@@ -107,30 +121,45 @@ class ColdMemory:
         results = []
         try:
             query_emb = await get_embedder_remote(query)
+            query_tokens = set(query.lower().split())
+            
             with get_db() as conn:
                 all_mem = conn.execute("SELECT payload, embedding FROM memory_pages WHERE embedding IS NOT NULL").fetchall()
                 if all_mem:
                     import numpy as np
                     payloads = [row['payload'] for row in all_mem]
-                    # NumPy Overdrive: Matrix multiplication instead of Python loop
                     embeddings = np.array([json.loads(row['embedding']) for row in all_mem])
                     
-                    # Normalize vectors for fast cosine similarity
+                    # 1. Cosine similarity
                     query_norm = query_emb / np.linalg.norm(query_emb)
                     emb_norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-                    # Handle zero vectors safely
                     emb_norms[emb_norms == 0] = 1 
                     embeddings_norm = embeddings / emb_norms
-                    
                     similarities = np.dot(embeddings_norm, query_norm)
+                    
+                    # 2. Keyword lexical overlap (light BM25 style)
+                    scores = []
+                    for idx, payload in enumerate(payloads):
+                        payload_tokens = payload.lower().split()
+                        if not payload_tokens or not query_tokens:
+                            lex_score = 0.0
+                        else:
+                            overlap = len(query_tokens.intersection(payload_tokens))
+                            lex_score = overlap / len(query_tokens)
+                        
+                        # Hybrid ranking: 60% semantic, 40% lexical
+                        hybrid_score = 0.6 * similarities[idx] + 0.4 * lex_score
+                        scores.append(hybrid_score)
                     
                     # Get top k indices
                     k = min(limit, len(payloads))
-                    top_indices = np.argsort(similarities)[::-1][:k]
+                    top_indices = np.argsort(scores)[::-1][:k]
                     results = [payloads[i] for i in top_indices]
         except Exception as e:
             print(f"\033[91m[Vault Error]\033[0m {e}")
             pass
+            
+        # File search fallback
         try:
             grep_cmd = ["grep", "-riIl", query, WIKI_PATH]
             files = subprocess.check_output(grep_cmd).decode().splitlines()
