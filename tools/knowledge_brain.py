@@ -60,6 +60,37 @@ def init_db():
         restarts_count INTEGER DEFAULT 0
     )
     """)
+
+    # Таблица страниц памяти
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS memory_pages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+        tier TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        embedding BLOB
+    )
+    """)
+
+    # Таблица логов отката изменений (Undo)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS undo_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+        cmd_class TEXT NOT NULL,
+        state TEXT NOT NULL
+    )
+    """)
+
+    # Таблица логирования задач
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS task_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+        action TEXT NOT NULL,
+        outcome TEXT NOT NULL
+    )
+    """)
     
     conn.commit()
     conn.close()

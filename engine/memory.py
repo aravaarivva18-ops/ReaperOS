@@ -7,6 +7,7 @@ import sys
 from datetime import datetime
 from config import DB_PATH, BASE_DIR
 import abc
+import contextlib
 
 class Command(abc.ABC):
     @abc.abstractmethod
@@ -15,60 +16,64 @@ class Command(abc.ABC):
     async def undo(self): pass
 
 class MemoryBrain:
-    _conn = None
     _undo_stack = []
     
     @classmethod
+    @contextlib.asynccontextmanager
     async def get_db(cls):
-        if cls._conn is None:
-            start_time = time.perf_counter()
-            cls._conn = await aiosqlite.connect(DB_PATH)
-            cls._conn.row_factory = sqlite3.Row
-            await cls._conn.execute("PRAGMA journal_mode = WAL")
-            await cls._conn.execute("PRAGMA synchronous = NORMAL")
+        start_time = time.perf_counter()
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = sqlite3.Row
+            await db.execute("PRAGMA journal_mode = WAL")
+            await db.execute("PRAGMA synchronous = NORMAL")
             duration = time.perf_counter() - start_time
             if duration > 0.1:
                 sys.stderr.write(f"\033[93m[TELEMETRY WARNING] DB Connection took {duration:.4f}s (SLI limit: 0.1s)\033[0m\n")
                 sys.stderr.flush()
-        return cls._conn
+                try:
+                    await db.execute("INSERT INTO telemetry (metric_name, value, details) VALUES (?, ?, ?)", 
+                                     ("db_connection_latency", duration, f"DB Connection took {duration:.4f}s"))
+                    await db.commit()
+                except Exception as e:
+                    sys.stderr.write(f"Failed to record db latency telemetry: {e}\n")
+            yield db
 
     @classmethod
     async def close(cls):
-        if cls._conn is not None:
-            await cls._conn.close()
-            cls._conn = None
+        # Clean shutdown interface compatibility
+        pass
 
     @classmethod
     async def push_undo(cls, command: Command):
-        db = await cls.get_db()
-        state = json.dumps(command.__dict__)
-        await db.execute("INSERT INTO undo_log (cmd_class, state) VALUES (?, ?)", (command.__class__.__name__, state))
-        await db.commit()
+        async with cls.get_db() as db:
+            state = json.dumps(command.__dict__)
+            await db.execute("INSERT INTO undo_log (cmd_class, state) VALUES (?, ?)", (command.__class__.__name__, state))
+            await db.commit()
 
     @classmethod
     async def pop_undo(cls):
-        db = await cls.get_db()
-        async with db.execute("SELECT id, cmd_class, state FROM undo_log ORDER BY id DESC LIMIT 1") as cursor:
-            row = await cursor.fetchone()
-            if row:
-                cmd_id, cmd_class, state = row
-                await db.execute("DELETE FROM undo_log WHERE id = ?", (cmd_id,))
-                await db.commit()
-                return True
-        return False
+        async with cls.get_db() as db:
+            async with db.execute("SELECT id, cmd_class, state FROM undo_log ORDER BY id DESC LIMIT 1") as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    cmd_id, cmd_class, state = row
+                    await db.execute("DELETE FROM undo_log WHERE id = ?", (cmd_id,))
+                    await db.commit()
+                    return True
+            return False
 
     @classmethod
     async def log_task(cls, action, outcome="DONE"):
-        db = await cls.get_db()
-        await db.execute("INSERT INTO task_log (action, outcome) VALUES (?, ?)", (action, outcome))
-        await db.commit()
+        async with cls.get_db() as db:
+            await db.execute("INSERT INTO task_log (action, outcome) VALUES (?, ?)", (action, outcome))
+            await db.commit()
 
     @classmethod
     async def get_node_count(cls):
-        db = await cls.get_db()
-        async with db.execute("SELECT COUNT(*) FROM memory_pages") as cursor:
-            row = await cursor.fetchone()
-            return row[0]
+        async with cls.get_db() as db:
+            async with db.execute("SELECT COUNT(*) FROM memory_pages") as cursor:
+                row = await cursor.fetchone()
+                return row[0]
 
     @classmethod
     async def distill_memory(cls):
