@@ -39,6 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         { level: 'debug', text: 'Conductor: Запись итогов работы в walkthrough.md' }
     ];
 
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, 
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
+
     let logHistory = [];
 
     function addLogLine(level, text) {
@@ -59,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         line.innerHTML = `
             <span class="log-time">[${log.time}]</span>
             <span class="log-level ${log.level}">${log.level.toUpperCase()}:</span>
-            <span class="log-text">${log.text}</span>
+            <span class="log-text">${escapeHTML(log.text)}</span>
         `;
         consoleOutput.appendChild(line);
         consoleOutput.scrollTop = consoleOutput.scrollHeight;

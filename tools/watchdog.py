@@ -45,12 +45,14 @@ def start_flask_api():
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
     
     # Запускаем в фоновом режиме
-    cmd = [sys.executable, "tools/embedder_server.py"]
+    cmd = [sys.executable, "-m", "engine.web_dashboard"]
     with open(log_file, "a") as out:
-        subprocess.Popen(cmd, cwd=PROJECT_DIR, stdout=out, stderr=out, start_new_session=True)
+        env = os.environ.copy()
+        env["PYTHONPATH"] = f"{PROJECT_DIR}:{PROJECT_DIR}/engine"
+        subprocess.Popen(cmd, cwd=PROJECT_DIR, stdout=out, stderr=out, start_new_session=True, env=env)
     
     restarts["embedder_server"] += 1
-    add_telemetry("watchdog_restart", 1.0, "embedder_server restarted")
+    add_telemetry("watchdog_restart", 1.0, "web_dashboard restarted")
 
 def is_trinity_running():
     """Проверяет, запущен ли демон Trinity (по сокету или процессу)."""

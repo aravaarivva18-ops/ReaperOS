@@ -13,3 +13,7 @@ echo "[Trinity] Daemon started (PID: $!)"
 # Start Orchestrator
 nohup env PYTHONPATH="$PROJECT_ROOT:$PROJECT_ROOT/engine" "$VENV/bin/python3" -m engine.main start > "$HOME/.reaper_brain.log" 2>&1 &
 echo "[Trinity] Heartbeat started (PID: $!)"
+
+# Start Web Dashboard
+nohup env PYTHONPATH="$PROJECT_ROOT:$PROJECT_ROOT/engine" "$VENV/bin/python3" -m engine.web_dashboard > "$HOME/.reaper_dashboard.log" 2>&1 &
+echo "[Trinity] Web Dashboard started (PID: $!)"

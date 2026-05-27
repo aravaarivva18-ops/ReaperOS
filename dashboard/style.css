@@ -91,6 +91,13 @@ body {
     box-shadow: 0 12px 30px rgba(16, 185, 129, 0.03);
 }
 
+.bento-grid:has(.bento-card:hover) .bento-card:not(:hover),
+.dashboard-container:has(.bento-card:hover) .bento-card:not(:hover) {
+    opacity: 0.6;
+    filter: blur(0.5px);
+    transition: opacity 0.4s var(--ease-fluid), filter 0.4s var(--ease-fluid);
+}
+
 /* 4. HEADER PANEL styling */
 .header-card {
     display: flex;
@@ -364,6 +371,8 @@ body {
     font-size: 0.75rem;
     line-height: 1.5;
     padding-right: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
 }
 
 /* Custom terminal log colors */

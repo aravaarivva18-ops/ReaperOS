@@ -3,7 +3,22 @@ import os
 import sqlite3
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "db.sqlite")
+# Load dotenv manually
+def load_db_path():
+    # default path
+    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "db.sqlite")
+    # check .env in parent dir
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                if line.strip().startswith("REAPER_DB_PATH="):
+                    val = line.strip().split("=", 1)[1].strip().strip("'").strip('"')
+                    if val:
+                        db_path = os.path.expanduser(val)
+    return db_path
+
+DB_PATH = load_db_path()
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
