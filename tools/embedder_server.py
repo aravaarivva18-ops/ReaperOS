@@ -1,6 +1,6 @@
 import os
 import time
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from sentence_transformers import SentenceTransformer
 from knowledge_brain import add_telemetry, get_process_status, get_latest_telemetry
 
@@ -78,6 +78,30 @@ def api_telemetry():
         return jsonify({'status': 'success', 'data': telemetry_data})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/logs/stream', methods=['GET'])
+def logs_stream():
+    """Реалтайм-стриминг логов для Bento Dashboard через Server-Sent Events."""
+    def generate():
+        from log_tailer import LogTailer
+        watchdog_log = os.path.join(project_root, 'logs', 'watchdog.log')
+        embedder_log = os.path.join(project_root, 'logs', 'embedder.log')
+        
+        # Initialize tailers
+        watchdog_tailer = LogTailer(watchdog_log)
+        embedder_tailer = LogTailer(embedder_log)
+        
+        # Initial yield to establish connection
+        yield "data: [SYSTEM] Connected to live logs stream.\n\n"
+        
+        while True:
+            for line in watchdog_tailer.tail():
+                yield f"data: {line.strip()}\n\n"
+            for line in embedder_tailer.tail():
+                yield f"data: {line.strip()}\n\n"
+            time.sleep(1.0)
+            
+    return Response(generate(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
     # Сервер будет слушать на порту 5001
