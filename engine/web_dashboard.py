@@ -270,26 +270,27 @@ def setup_mcp():
 
 @app.route('/api/logs/stream')
 def stream_logs():
+    """Реалтайм-стриминг логов для Bento Dashboard через Server-Sent Events."""
     def generate():
         import time
-        log_path = os.path.join(BASE_DIR, "logs/watchdog.log")
-        if not os.path.exists(log_path):
-            yield "data: [Watchdog Log Not Found]\n\n"
-        else:
-            with open(log_path, "r", encoding="utf-8") as f:
-                # Read last 15 lines initially
-                lines = f.readlines()
-                for line in lines[-15:]:
-                    yield f"data: {line.strip()}\n\n"
-                
-                # Tail loop
-                f.seek(0, 2)
-                while True:
-                    line = f.readline()
-                    if not line:
-                        time.sleep(0.5)
-                        continue
-                    yield f"data: {line.strip()}\n\n"
+        from log_tailer import LogTailer
+        watchdog_log = os.path.join(BASE_DIR, "logs/watchdog.log")
+        embedder_log = os.path.join(BASE_DIR, "logs/embedder.log")
+        
+        # Initialize tailers
+        watchdog_tailer = LogTailer(watchdog_log)
+        embedder_tailer = LogTailer(embedder_log)
+        
+        # Initial yield to establish connection
+        yield "data: [SYSTEM] Connected to live logs stream.\n\n"
+        
+        while True:
+            for line in watchdog_tailer.tail():
+                yield f"data: {line.strip()}\n\n"
+            for line in embedder_tailer.tail():
+                yield f"data: {line.strip()}\n\n"
+            time.sleep(1.0)
+            
     return Response(generate(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
