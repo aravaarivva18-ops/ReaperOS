@@ -2,7 +2,8 @@ import os
 from huggingface_hub import snapshot_download
 
 def download_models():
-    base_dir = "/Users/rus/Projects/ReaperOS/local_models/weights"
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base_dir = os.path.join(project_root, "local_models", "weights")
     os.makedirs(base_dir, exist_ok=True)
     
     print("Downloading Qwen2.5-0.5B-Instruct-4bit for MLX...")

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaper Pulse — Панель управления ИИ-Агентами</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Glow orbs for premium mesh styling -->
+    <div class="mesh-orb mesh-orb-cyan"></div>
+    <div class="mesh-orb mesh-orb-purple"></div>
+
+    <div class="dashboard-container">
+        <!-- 1. HEADER PANEL -->
+        <header class="bento-card header-card">
+            <div class="header-logo">
+                <span class="pulse-indicator"></span>
+                <h1>REAPER PULSE<span>.</span></h1>
+            </div>
+            <div class="header-meta">
+                <div class="meta-item">
+                    <span class="meta-label">Система:</span>
+                    <span class="meta-value">Reaper OS v12.2</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Uptime:</span>
+                    <span class="meta-value" id="uptime-val">00:00:00</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Режим:</span>
+                    <span class="meta-value highlight-green" id="mode-val">LIVE</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="bento-grid">
+            <!-- 2. ANTIGRAVITY ENGINE CARD -->
+            <section class="bento-card engine-card">
+                <div class="card-header">
+                    <span class="card-icon">⚡</span>
+                    <h2>Antigravity CLI Core</h2>
+                </div>
+                <div class="stats-list">
+                    <div class="stat-row">
+                        <span>Модель ИИ</span>
+                        <span class="highlight-purple">Gemini 3.5 Flash</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Инференс</span>
+                        <span>Local-Only (MLX)</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Текущий контекст</span>
+                        <span id="context-val">12,450 / 120,000 токенов</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Активные инструменты</span>
+                        <span>18 / 24 разрешено</span>
+                    </div>
+                </div>
+                <div class="tool-tags">
+                    <span class="tag">run_command</span>
+                    <span class="tag">replace_file</span>
+                    <span class="tag">grep_search</span>
+                    <span class="tag">browser_qa</span>
+                    <span class="tag">pulse</span>
+                </div>
+            </section>
+
+            <!-- 3. TRINITY STATUS CARD -->
+            <section class="bento-card trinity-card">
+                <div class="card-header">
+                    <span class="card-icon">🧬</span>
+                    <h2>Trinity Protocol</h2>
+                </div>
+                <div class="trinity-steps">
+                    <div class="trinity-step active" id="conductor-step">
+                        <div class="step-head">
+                            <span class="step-badge">1</span>
+                            <h3>Conductor</h3>
+                        </div>
+                        <p>Планирование & DAG-дерево задач</p>
+                    </div>
+                    <div class="trinity-step" id="reaper-step">
+                        <div class="step-head">
+                            <span class="step-badge">2</span>
+                            <h3>Reaper Engine</h3>
+                        </div>
+                        <p>Сургические операции с файлами</p>
+                    </div>
+                    <div class="trinity-step" id="ruflo-step">
+                        <div class="step-head">
+                            <span class="step-badge">3</span>
+                            <h3>Ruflo QA</h3>
+                        </div>
+                        <p>Тестирование и валидация кода</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. LOGS CONSOLE CARD (DOUBLE WIDTH) -->
+            <section class="bento-card logs-card">
+                <div class="card-header">
+                    <span class="card-icon">💻</span>
+                    <h2>Реалтайм Лог-Консоль</h2>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">Все</button>
+                        <button class="filter-btn" data-filter="info">Info</button>
+                        <button class="filter-btn" data-filter="warn">Warn</button>
+                        <button class="filter-btn" data-filter="debug">Debug</button>
+                    </div>
+                </div>
+                <div class="console-wrapper">
+                    <div class="console-body" id="console-output">
+                        <!-- Log messages go here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. MEMORY VAULT CARD -->
+            <section class="bento-card memory-card">
+                <div class="card-header">
+                    <span class="card-icon">🔮</span>
+                    <h2>MemPalace Memory Vault</h2>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="memory-canvas"></canvas>
+                </div>
+                <div class="stats-list small-stats">
+                    <div class="stat-row">
+                        <span>Записей в ChromaDB</span>
+                        <span>428 узлов</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Индекс видимости</span>
+                        <span class="highlight-green">94.8%</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. TELEMETRY & SLI CARD -->
+            <section class="bento-card telemetry-card">
+                <div class="card-header">
+                    <span class="card-icon">📈</span>
+                    <h2>Telemetry & SLIs</h2>
+                </div>
+                <div class="telemetry-grid">
+                    <div class="telemetry-box">
+                        <span class="tel-val" id="latency-val">120ms</span>
+                        <span class="tel-label">Latency API</span>
+                    </div>
+                    <div class="telemetry-box">
+                        <span class="tel-val" id="calls-val">34</span>
+                        <span class="tel-label">Запросов за сессию</span>
+                    </div>
+                    <div class="telemetry-box">
+                        <span class="tel-val" id="errors-val">0</span>
+                        <span class="tel-label">Ошибки (Errors)</span>
+                    </div>
+                    <div class="telemetry-box">
+                        <span class="tel-val" id="cache-val">100%</span>
+                        <span class="tel-label">KV-Cache hit rate</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-bar-wrapper">
+                        <div class="chart-bar" style="height: 40%"></div>
+                        <div class="chart-bar" style="height: 60%"></div>
+                        <div class="chart-bar" style="height: 35%"></div>
+                        <div class="chart-bar" style="height: 80%"></div>
+                        <div class="chart-bar" style="height: 50%"></div>
+                        <div class="chart-bar" style="height: 95%"></div>
+                        <div class="chart-bar" style="height: 70%"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

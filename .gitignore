@@ -10,6 +10,7 @@ local_models/
 .reaper_context
 reaper_daemon.log
 reaper_daemon.err
+logs/
 
 # Credentials
 .env
