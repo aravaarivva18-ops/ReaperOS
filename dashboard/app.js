@@ -1,4 +1,4 @@
-/* app.js - ReaperOS Dashboard Logic */
+/* app.js - ReaperOS Dashboard Logic with Live Telemetry Poll */
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Uptime Clock
@@ -72,13 +72,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const template = logTemplates[initIndex];
             addLogLine(template.level, template.text);
             initIndex++;
-            setTimeout(loadInitialLogs, 800);
+            setTimeout(loadInitialLogs, 400);
         } else {
             // Start live random logs generator
-            setInterval(generateLiveLog, 4000);
+            setInterval(generateLiveLog, 5000);
         }
     }
-    setTimeout(loadInitialLogs, 500);
+    setTimeout(loadInitialLogs, 200);
 
     // Live log generator simulating background work
     const liveLogPool = [
@@ -93,9 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateLiveLog() {
         const randLog = liveLogPool[Math.floor(Math.random() * liveLogPool.length)];
         addLogLine(randLog.level, randLog.text);
-        
-        // Randomly update telemetry UI values
-        updateTelemetry();
         
         // Trigger visual step activations
         triggerStepAnimation();
@@ -118,45 +115,92 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 3. Telemetry Update logic
+    // 3. Telemetry Update logic (Dynamic API Polling)
     const latencyVal = document.getElementById('latency-val');
     const callsVal = document.getElementById('calls-val');
     const errorsVal = document.getElementById('errors-val');
     const chartBars = document.querySelectorAll('.chart-bar');
-    let callCount = 34;
+    
+    const watchdogVal = document.getElementById('watchdog-val');
+    const shieldVal = document.getElementById('shield-val');
 
-    function updateTelemetry() {
-        // Random latency variation
-        const latency = Math.floor(100 + Math.random() * 45);
-        latencyVal.textContent = `${latency}ms`;
-        if (latency > 135) {
-            latencyVal.classList.add('highlight-purple');
-        } else {
-            latencyVal.classList.remove('highlight-purple');
-        }
-        
-        // Increment call counts occasionally
-        if (Math.random() > 0.6) {
-            callCount++;
-            callsVal.textContent = callCount;
-        }
+    let totalCalls = 0;
+    let totalErrors = 0;
 
-        // Randomize error state
-        if (Math.random() > 0.98) {
-            errorsVal.textContent = "1";
-            errorsVal.style.color = "var(--accent-lime)";
-        } else {
-            errorsVal.textContent = "0";
-            errorsVal.style.color = "";
+    async function pollTelemetryData() {
+        try {
+            // Опрос телеметрии
+            const resTelemetry = await fetch('http://localhost:5001/api/telemetry');
+            if (resTelemetry.ok) {
+                const dataObj = await resTelemetry.json();
+                const telemetryRows = dataObj.data || [];
+                
+                if (telemetryRows.length > 0) {
+                    // Последнее значение latency
+                    const latestLatency = Math.round(telemetryRows[0].value);
+                    latencyVal.textContent = `${latestLatency}ms`;
+                    
+                    if (latestLatency > 500) {
+                        latencyVal.style.color = "var(--accent-cyan)"; // Warning color
+                    } else {
+                        latencyVal.style.color = "";
+                    }
+                    
+                    // Обновляем шкалу графиков на основе последних значений
+                    chartBars.forEach((bar, idx) => {
+                        if (telemetryRows[idx]) {
+                            const val = telemetryRows[idx].value;
+                            // Пропорциональная высота (например, 1000ms = 100%)
+                            const pct = Math.max(10, Math.min(100, (val / 1000) * 100));
+                            bar.style.height = `${pct}%`;
+                        }
+                    });
+                }
+            }
+            
+            // Опрос статусов процессов
+            const resStatus = await fetch('http://localhost:5001/api/status');
+            if (resStatus.ok) {
+                const dataObj = await resStatus.json();
+                const statusList = dataObj.data || [];
+                
+                let isWatchdogHealthy = true;
+                statusList.forEach(proc => {
+                    if (proc.process_name === "embedder_server" && proc.is_alive === 0) {
+                        isWatchdogHealthy = false;
+                    }
+                });
+                
+                if (isWatchdogHealthy) {
+                    watchdogVal.textContent = "ACTIVE";
+                    watchdogVal.className = "meta-value highlight-green";
+                } else {
+                    watchdogVal.textContent = "RECOVERING";
+                    watchdogVal.className = "meta-value highlight-purple";
+                }
+            }
+            
+            shieldVal.textContent = "SECURE";
+            shieldVal.className = "meta-value highlight-green";
+            
+            totalCalls++;
+            callsVal.textContent = totalCalls;
+            errorsVal.textContent = totalErrors;
+            
+        } catch (err) {
+            // Если сервер API выключен
+            latencyVal.textContent = "N/A";
+            watchdogVal.textContent = "DOWN";
+            watchdogVal.className = "meta-value highlight-purple"; // Red style
+            
+            shieldVal.textContent = "OFFLINE";
+            shieldVal.className = "meta-value";
         }
-
-        // Adjust chart bars randomly
-        chartBars.forEach(bar => {
-            const currentHeight = parseInt(bar.style.height) || 50;
-            const variation = Math.floor(Math.random() * 30) - 15;
-            bar.style.height = `${Math.max(10, Math.min(100, currentHeight + variation))}%`;
-        });
     }
+
+    // Запускаем опрос каждые 3 секунды
+    setInterval(pollTelemetryData, 3000);
+    pollTelemetryData();
 
     // 4. Trinity steps transitions
     const steps = [
@@ -178,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Fit canvas size
     function resizeCanvas() {
+        if (!canvas.parentNode) return;
         const rect = canvas.parentNode.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
@@ -190,8 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const numNodes = 15;
     for (let i = 0; i < numNodes; i++) {
         nodes.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+            x: Math.random() * (canvas.width || 300),
+            y: Math.random() * (canvas.height || 150),
             vx: (Math.random() - 0.5) * 0.4,
             vy: (Math.random() - 0.5) * 0.4,
             radius: 3 + Math.random() * 4,

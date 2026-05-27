@@ -19,3 +19,7 @@ logs/
 # Temporary Daemon Indicators
 .daemon_ready
 *.sock
+
+# Local Databases
+db.sqlite
+

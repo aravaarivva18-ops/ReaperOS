@@ -6,11 +6,16 @@ import logging
 import time
 import subprocess
 import argparse
-from datetime import datetime
+import gzip
+from datetime import datetime, timedelta
 
 # Настройка путей
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOG_FILE = os.path.join(PROJECT_DIR, "logs/cleanup.log")
+LOGS_DIR = os.path.join(PROJECT_DIR, "logs")
+LOG_FILE = os.path.join(LOGS_DIR, "cleanup.log")
+
+# Создаем папку логов, если ее нет
+os.makedirs(LOGS_DIR, exist_ok=True)
 
 # Настройка логирования
 logging.basicConfig(
@@ -86,6 +91,58 @@ def run_cmd(cmd, dry_run=False):
     except Exception as e:
         logging.error(f"Ошибка при запуске {' '.join(cmd)}: {e}")
 
+def rotate_logs(max_size_mb=5, keep_days=14, dry_run=False):
+    """Выполняет ротацию и сжатие логов."""
+    logging.info("=== Запуск ротации логов ===")
+    if not os.path.exists(LOGS_DIR):
+        return
+        
+    now = datetime.now()
+    retention_cutoff = now - timedelta(days=keep_days)
+    
+    for filename in os.listdir(LOGS_DIR):
+        filepath = os.path.join(LOGS_DIR, filename)
+        if not os.path.isfile(filepath):
+            continue
+            
+        # Удаление старых архивов логов
+        if filename.endswith(".gz"):
+            file_time = datetime.fromtimestamp(os.path.getmtime(filepath))
+            if file_time < retention_cutoff:
+                if dry_run:
+                    logging.info(f"[DRY-RUN] Будет удален старый архив лога: {filename}")
+                else:
+                    try:
+                        os.remove(filepath)
+                        logging.info(f"Удален старый архив лога: {filename}")
+                    except Exception as e:
+                        logging.error(f"Не удалось удалить архив лога {filename}: {e}")
+            continue
+            
+        # Исключаем текущий файл очистки во время его записи (чтобы избежать коллизий)
+        if filename == "cleanup.log":
+            continue
+            
+        # Проверка размера и ротация обычных логов
+        try:
+            size_mb = os.path.getsize(filepath) / (1024 * 1024)
+            if size_mb > max_size_mb:
+                timestamp = now.strftime("%Y%m%d_%H%M%S")
+                archive_name = f"{filename}.{timestamp}.gz"
+                archive_path = os.path.join(LOGS_DIR, archive_name)
+                
+                if dry_run:
+                    logging.info(f"[DRY-RUN] Будет сжат лог: {filename} -> {archive_name}")
+                else:
+                    logging.info(f"Сжатие лога: {filename} ({format_size(os.path.getsize(filepath))}) -> {archive_name}")
+                    with open(filepath, 'rb') as f_in:
+                        with gzip.open(archive_path, 'wb') as f_out:
+                            shutil.copyfileobj(f_in, f_out)
+                    # Очищаем исходный файл лога
+                    open(filepath, 'w').close()
+        except Exception as e:
+            logging.error(f"Ошибка при обработке лога {filename}: {e}")
+
 def main():
     parser = argparse.ArgumentParser(description="Автоматическая фоновая очистка системы Reaper OS")
     parser.add_argument("--dry-run", action="store_true", help="Запуск в режиме симуляции")
@@ -98,7 +155,7 @@ def main():
 
     total_freed = 0
 
-    # Список путей для полной очистки
+    # Список путей для полной очистки caches
     home_dir = os.path.expanduser("~")
     username = os.getenv("USER") or os.getenv("USERNAME") or "rus"
     targets = [
@@ -116,7 +173,10 @@ def main():
     for target in targets:
         total_freed += safe_remove(target, dry_run=args.dry_run)
 
-    # Системная очистка
+    # Запуск ротации и сжатия логов проекта
+    rotate_logs(dry_run=args.dry_run)
+
+    # Системная очистка brew
     run_cmd(["brew", "cleanup", "--prune=all"], dry_run=args.dry_run)
 
     end_time = time.time()
